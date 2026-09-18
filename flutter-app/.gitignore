@@ -113,3 +113,8 @@ app.*.map.json
 
 # Generated l10n files
 lib/l10n/gen/
+
+# Environment configuration (contains server URLs — do not commit)
+# Copy .env.example to .env locally. Only the example is tracked.
+.env
+!.env.example
