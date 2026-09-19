@@ -7,7 +7,10 @@
 /// ```
 library;
 
+export 'errors/api_exception.dart';
 export 'models/auth_response_model.dart';
+export 'models/email_verification.dart';
+export 'models/session_model.dart';
 export 'models/user_model.dart';
 export 'repositories/auth_repository.dart';
 export 'services/api_client.dart';

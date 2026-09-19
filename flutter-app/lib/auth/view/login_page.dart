@@ -33,11 +33,11 @@ class _LoginPageState extends State<LoginPage> {
   void _onLogin() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<AuthBloc>().add(
-            AuthLoginRequested(
-              email: _emailController.text.trim(),
-              password: _passwordController.text,
-            ),
-          );
+        AuthLoginRequested(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        ),
+      );
     }
   }
 
@@ -128,8 +128,9 @@ class _LoginPageState extends State<LoginPage> {
                             alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: () {
-                                // Password reset is handled via the web
-                                // (POST /api/v1/auth/forgot-password).
+                                Navigator.of(
+                                  context,
+                                ).pushNamed('/forgot-password');
                               },
                               child: const Text('Forgot password?'),
                             ),
@@ -158,8 +159,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               TextButton(
                                 onPressed: () {
-                                  Navigator.of(context)
-                                      .pushNamed('/register');
+                                  Navigator.of(context).pushNamed('/register');
                                 },
                                 child: const Text('Sign Up'),
                               ),

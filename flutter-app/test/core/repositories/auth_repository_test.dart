@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter_app/core/errors/api_exception.dart';
 import 'package:flutter_app/core/models/auth_response_model.dart';
 import 'package:flutter_app/core/repositories/auth_repository.dart';
 import 'package:flutter_app/core/services/secure_storage_service.dart';
@@ -160,16 +161,16 @@ void main() {
 
     test('getMe parses the user directly from data', () async {
       adapter.handler = (_) async => _json({
-            'success': true,
-            'message': 'Authenticated user.',
-            'data': {
-              'id': 1,
-              'name': 'Ada Lovelace',
-              'email': 'ada@example.com',
-              'email_verified_at': null,
-              'two_factor_enabled': false,
-            },
-          });
+        'success': true,
+        'message': 'Authenticated user.',
+        'data': {
+          'id': 1,
+          'name': 'Ada Lovelace',
+          'email': 'ada@example.com',
+          'email_verified_at': null,
+          'two_factor_enabled': false,
+        },
+      });
 
       final user = await repository.getMe();
 
@@ -178,51 +179,54 @@ void main() {
       expect(user.name, 'Ada Lovelace');
     });
 
-    test('refreshToken sends the token in the body and rotates the pair',
-        () async {
-      await storage.saveTokens(
-        accessToken: 'old-access',
-        refreshToken: 'old-refresh',
-      );
+    test(
+      'refreshToken sends the token in the body and rotates the pair',
+      () async {
+        await storage.saveTokens(
+          accessToken: 'old-access',
+          refreshToken: 'old-refresh',
+        );
 
-      adapter.handler = (_) async => _json({
-            'success': true,
-            'message': 'Token refreshed.',
-            'data': {
-              'user': {
-                'id': 1,
-                'name': 'Ada Lovelace',
-                'email': 'ada@example.com',
-              },
-              'access_token': 'new-access',
-              'token_type': 'Bearer',
-              'access_expires_at': '2026-09-01T00:15:00+00:00',
-              'refresh_token': 'new-refresh',
-              'refresh_expires_at': '2026-09-15T00:00:00+00:00',
+        adapter.handler = (_) async => _json({
+          'success': true,
+          'message': 'Token refreshed.',
+          'data': {
+            'user': {
+              'id': 1,
+              'name': 'Ada Lovelace',
+              'email': 'ada@example.com',
             },
-          });
+            'access_token': 'new-access',
+            'token_type': 'Bearer',
+            'access_expires_at': '2026-09-01T00:15:00+00:00',
+            'refresh_token': 'new-refresh',
+            'refresh_expires_at': '2026-09-15T00:00:00+00:00',
+          },
+        });
 
-      final newAccess = await repository.refreshToken();
+        final result = await repository.refreshToken();
 
-      final options = adapter.lastOptions!;
-      expect(options.path, '/v1/auth/refresh');
-      final body = options.data as Map<String, dynamic>;
-      expect(body['refresh_token'], 'old-refresh');
-      expect(newAccess, 'new-access');
-      expect(await storage.getAccessToken(), 'new-access');
-      expect(await storage.getRefreshToken(), 'new-refresh');
-    });
+        final options = adapter.lastOptions!;
+        expect(options.path, '/v1/auth/refresh');
+        final body = options.data as Map<String, dynamic>;
+        expect(body['refresh_token'], 'old-refresh');
+        expect(result.tokens.accessToken, 'new-access');
+        expect(result.user.email, 'ada@example.com');
+        expect(await storage.getAccessToken(), 'new-access');
+        expect(await storage.getRefreshToken(), 'new-refresh');
+      },
+    );
 
-    test('getMe throws DioException on 401', () async {
+    test('getMe throws AuthenticationException on 401', () async {
       adapter.handler = (_) async => _json({
-            'success': false,
-            'message': 'Unauthenticated.',
-            'code': 'UNAUTHENTICATED',
-          }, 401);
+        'success': false,
+        'message': 'Unauthenticated.',
+        'code': 'UNAUTHENTICATED',
+      }, 401);
 
       expect(
         () => repository.getMe(),
-        throwsA(isA<DioException>()),
+        throwsA(isA<AuthenticationException>()),
       );
     });
   });

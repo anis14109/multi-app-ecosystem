@@ -76,8 +76,7 @@ class _LockScreenState extends State<LockScreen> {
             }
 
             final hasPin = locked?.hasPin ?? false;
-            final biometricAvailable =
-                locked?.biometricAvailable ?? false;
+            final biometricAvailable = locked?.biometricAvailable ?? false;
 
             final showKeypad = hasPin;
             final showBiometric = biometricAvailable;
@@ -105,14 +104,12 @@ class _LockScreenState extends State<LockScreen> {
                       showKeypad
                           ? 'Enter your PIN to unlock'
                           : showBiometric
-                              ? 'Authenticate with biometrics to unlock'
-                              : 'No unlock method available',
+                          ? 'Authenticate with biometrics to unlock'
+                          : 'No unlock method available',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 48),
                     if (showKeypad) ...[
@@ -123,13 +120,11 @@ class _LockScreenState extends State<LockScreen> {
                           '$_attemptCount attempt'
                           '${_attemptCount > 1 ? 's' : ''}',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                         ),
                         const SizedBox(height: 16),

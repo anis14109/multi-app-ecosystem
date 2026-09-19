@@ -32,8 +32,8 @@ class HomePage extends StatelessWidget {
             final user = state is AuthenticatedOnline
                 ? state.user
                 : state is AuthenticatedOffline
-                    ? state.user
-                    : null;
+                ? state.user
+                : null;
 
             final name = user?.name ?? 'User';
             final email = user?.email ?? '';
@@ -43,17 +43,18 @@ class HomePage extends StatelessWidget {
                 SliverAppBar(
                   pinned: true,
                   expandedHeight: 220,
-                  backgroundColor:
-                      Theme.of(context).colorScheme.primaryContainer,
-                  foregroundColor:
-                      Theme.of(context).colorScheme.onPrimaryContainer,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer,
+                  foregroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimaryContainer,
                   leading: Padding(
                     padding: const EdgeInsets.all(8),
                     child: CircleAvatar(
-                      backgroundColor: Theme.of(context)
-                          .colorScheme
-                          .surface
-                          .withValues(alpha: 0.85),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.85),
                       child: Icon(
                         Icons.apps,
                         color: Theme.of(context).colorScheme.primary,
@@ -65,8 +66,8 @@ class HomePage extends StatelessWidget {
                     IconButton(
                       onPressed: () {
                         context.read<AuthBloc>().add(
-                              const AuthLogoutRequested(),
-                            );
+                          const AuthLogoutRequested(),
+                        );
                       },
                       icon: const Icon(Icons.logout),
                       tooltip: 'Logout',
@@ -83,28 +84,25 @@ class HomePage extends StatelessWidget {
                             children: [
                               CircleAvatar(
                                 radius: 28,
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .primary,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
                                 child: Text(
-                                  name.isNotEmpty
-                                      ? name[0].toUpperCase()
-                                      : '?',
+                                  name.isNotEmpty ? name[0].toUpperCase() : '?',
                                   style: Theme.of(context)
                                       .textTheme
                                       .headlineSmall
                                       ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimary,
                                       ),
                                 ),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       'Welcome, $name',
@@ -123,9 +121,9 @@ class HomePage extends StatelessWidget {
                                         email,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium,
                                       ),
                                     ],
                                   ],
@@ -136,18 +134,12 @@ class HomePage extends StatelessWidget {
                           const SizedBox(height: 12),
                           Chip(
                             avatar: Icon(
-                              isOnline
-                                  ? Icons.wifi
-                                  : Icons.wifi_off,
+                              isOnline ? Icons.wifi : Icons.wifi_off,
                               size: 18,
-                              color: isOnline
-                                  ? Colors.green
-                                  : Colors.orange,
+                              color: isOnline ? Colors.green : Colors.orange,
                             ),
                             label: Text(
-                              isOnline
-                                  ? 'Connected'
-                                  : 'Offline Mode',
+                              isOnline ? 'Connected' : 'Offline Mode',
                             ),
                           ),
                         ],
@@ -161,8 +153,8 @@ class HomePage extends StatelessWidget {
                     children: [
                       Text(
                         'Quick Actions',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
                       ),
@@ -171,7 +163,8 @@ class HomePage extends StatelessWidget {
                         icon: Icons.account_circle_outlined,
                         title: 'My Profile',
                         subtitle: 'View your account details',
-                        onTap: () => Navigator.of(context).pushNamed('/profile'),
+                        onTap: () =>
+                            Navigator.of(context).pushNamed('/profile'),
                       ),
                       const SizedBox(height: 12),
                       const _ActionCard(
@@ -195,9 +188,9 @@ class HomePage extends StatelessWidget {
                             children: [
                               Icon(
                                 Icons.offline_pin_outlined,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 16),
                               const Expanded(

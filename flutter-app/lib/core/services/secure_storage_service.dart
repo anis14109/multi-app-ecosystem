@@ -19,7 +19,7 @@ class SecureStorageService {
   /// Creates a [SecureStorageService] with an optional custom
   /// [FlutterSecureStorage] instance for testing purposes.
   SecureStorageService({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
 
@@ -47,12 +47,10 @@ class SecureStorageService {
   }
 
   /// Retrieve the stored access token.
-  Future<String?> getAccessToken() =>
-      _storage.read(key: _accessTokenKey);
+  Future<String?> getAccessToken() => _storage.read(key: _accessTokenKey);
 
   /// Retrieve the stored refresh token.
-  Future<String?> getRefreshToken() =>
-      _storage.read(key: _refreshTokenKey);
+  Future<String?> getRefreshToken() => _storage.read(key: _refreshTokenKey);
 
   /// Update only the access token (used during token refresh).
   Future<void> updateAccessToken(String token) =>
@@ -90,12 +88,10 @@ class SecureStorageService {
   }
 
   /// Retrieve the stored user name.
-  Future<String?> getUserName() =>
-      _storage.read(key: _userNameKey);
+  Future<String?> getUserName() => _storage.read(key: _userNameKey);
 
   /// Retrieve the stored user email.
-  Future<String?> getUserEmail() =>
-      _storage.read(key: _userEmailKey);
+  Future<String?> getUserEmail() => _storage.read(key: _userEmailKey);
 
   // ── PIN Operations ────────────────────────────────────────────────────
 
@@ -104,8 +100,7 @@ class SecureStorageService {
       _storage.write(key: _hashedPinKey, value: hashedPin);
 
   /// Retrieve the stored hashed PIN for verification.
-  Future<String?> getHashedPin() =>
-      _storage.read(key: _hashedPinKey);
+  Future<String?> getHashedPin() => _storage.read(key: _hashedPinKey);
 
   /// Mark that the user has completed PIN setup.
   Future<void> markPinCreated() =>

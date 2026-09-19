@@ -5,6 +5,7 @@ import 'package:bloc/bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_app/auth/bloc/auth_event.dart';
 import 'package:flutter_app/auth/bloc/auth_state.dart';
+import 'package:flutter_app/core/errors/api_exception.dart';
 import 'package:flutter_app/core/models/auth_response_model.dart';
 import 'package:flutter_app/core/models/user_model.dart';
 import 'package:flutter_app/core/repositories/auth_repository.dart';
@@ -45,7 +46,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this._networkInfo,
     required this._pinHashService,
     required this._biometricService,
-  })  : super(const AuthInitial()) {
+  }) : super(const AuthInitial()) {
     on<AuthStarted>(_onAuthStarted);
     on<AuthLoginRequested>(_onLoginRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
@@ -54,6 +55,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthPinCreated>(_onPinCreated);
     on<AuthBiometricEnabled>(_onBiometricEnabled);
     on<AuthLogoutRequested>(_onLogoutRequested);
+    on<AuthLogoutAllRequested>(_onLogoutAllRequested);
     on<AuthRefreshRequested>(_onRefreshRequested);
     on<AuthTokenExpired>(_onTokenExpired);
   }
@@ -105,39 +107,42 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
         // Has user data but no unlock method — show the setup screen.
         final hasPin = await _secureStorage.hasPinCreated();
-        final biometricEnabled =
-            await _secureStorage.isBiometricEnabled();
-        final biometricAvailable =
-            await _biometricService.isBiometricAvailable();
+        final biometricEnabled = await _secureStorage.isBiometricEnabled();
+        final biometricAvailable = await _biometricService
+            .isBiometricAvailable();
 
         if (hasPin || biometricEnabled) {
-          return emit(AuthLocalLocked(
-            hasPin: hasPin,
-            biometricEnabled: biometricEnabled,
-            biometricAvailable: biometricAvailable,
-          ));
+          return emit(
+            AuthLocalLocked(
+              hasPin: hasPin,
+              biometricEnabled: biometricEnabled,
+              biometricAvailable: biometricAvailable,
+            ),
+          );
         }
 
-        return emit(AuthSetupRequired(
-          biometricAvailable: biometricAvailable,
-          name: await _secureStorage.getUserName(),
-          email: await _secureStorage.getUserEmail(),
-        ));
+        return emit(
+          AuthSetupRequired(
+            biometricAvailable: biometricAvailable,
+            name: await _secureStorage.getUserName(),
+            email: await _secureStorage.getUserEmail(),
+          ),
+        );
       }
 
       // User has completed local setup — show lock screen.
       // This works entirely offline. No API calls needed.
       final hasPin = await _secureStorage.hasPinCreated();
-      final biometricEnabled =
-          await _secureStorage.isBiometricEnabled();
-      final biometricAvailable =
-          await _biometricService.isBiometricAvailable();
+      final biometricEnabled = await _secureStorage.isBiometricEnabled();
+      final biometricAvailable = await _biometricService.isBiometricAvailable();
 
-      emit(AuthLocalLocked(
-        hasPin: hasPin,
-        biometricEnabled: biometricEnabled,
-        biometricAvailable: biometricAvailable,
-      ));
+      emit(
+        AuthLocalLocked(
+          hasPin: hasPin,
+          biometricEnabled: biometricEnabled,
+          biometricAvailable: biometricAvailable,
+        ),
+      );
     } on Object catch (e) {
       log('AuthStarted error: $e');
       // On error, still try to show lock screen if possible.
@@ -178,37 +183,51 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       // Check if the user has set up any local unlock method.
       final hasPin = await _secureStorage.hasPinCreated();
-      final biometricEnabled =
-          await _secureStorage.isBiometricEnabled();
+      final biometricEnabled = await _secureStorage.isBiometricEnabled();
       if (!hasPin && !biometricEnabled) {
-        final biometricAvailable =
-            await _biometricService.isBiometricAvailable();
-        return emit(AuthSetupRequired(
-          biometricAvailable: biometricAvailable,
-          email: authResponse.user.email,
-          name: authResponse.user.name,
-        ));
+        final biometricAvailable = await _biometricService
+            .isBiometricAvailable();
+        return emit(
+          AuthSetupRequired(
+            biometricAvailable: biometricAvailable,
+            email: authResponse.user.email,
+            name: authResponse.user.name,
+          ),
+        );
       }
 
       // User already has a PIN set up — go directly to authenticated.
       emit(AuthenticatedOnline(user: authResponse.user));
     } on TwoFactorRequiredException catch (e) {
-      emit(AuthError(
-        message: e.message,
-        previousState: const AuthUnauthenticated(),
-      ));
+      emit(
+        AuthError(
+          message: e.message,
+          previousState: const AuthUnauthenticated(),
+        ),
+      );
+    } on ApiException catch (e) {
+      emit(
+        AuthError(
+          message: e.message,
+          previousState: const AuthUnauthenticated(),
+        ),
+      );
     } on DioException catch (e) {
       final message = _extractErrorMessage(e);
-      emit(AuthError(
-        message: message,
-        previousState: const AuthUnauthenticated(),
-      ));
+      emit(
+        AuthError(
+          message: message,
+          previousState: const AuthUnauthenticated(),
+        ),
+      );
     } on Object catch (e) {
       log('Login error: $e');
-      emit(const AuthError(
-        message: 'An unexpected error occurred. Please try again.',
-        previousState: AuthUnauthenticated(),
-      ));
+      emit(
+        const AuthError(
+          message: 'An unexpected error occurred. Please try again.',
+          previousState: AuthUnauthenticated(),
+        ),
+      );
     }
   }
 
@@ -230,25 +249,37 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await _authRepository.persistAuthLocally(authResponse);
 
       // New users always need to choose a local unlock method.
-      final biometricAvailable =
-          await _biometricService.isBiometricAvailable();
-      emit(AuthSetupRequired(
-        biometricAvailable: biometricAvailable,
-        email: authResponse.user.email,
-        name: authResponse.user.name,
-      ));
+      final biometricAvailable = await _biometricService.isBiometricAvailable();
+      emit(
+        AuthSetupRequired(
+          biometricAvailable: biometricAvailable,
+          email: authResponse.user.email,
+          name: authResponse.user.name,
+        ),
+      );
+    } on ApiException catch (e) {
+      emit(
+        AuthError(
+          message: e.message,
+          previousState: const AuthUnauthenticated(),
+        ),
+      );
     } on DioException catch (e) {
       final message = _extractErrorMessage(e);
-      emit(AuthError(
-        message: message,
-        previousState: const AuthUnauthenticated(),
-      ));
+      emit(
+        AuthError(
+          message: message,
+          previousState: const AuthUnauthenticated(),
+        ),
+      );
     } on Object catch (e) {
       log('Register error: $e');
-      emit(const AuthError(
-        message: 'An unexpected error occurred. Please try again.',
-        previousState: AuthUnauthenticated(),
-      ));
+      emit(
+        const AuthError(
+          message: 'An unexpected error occurred. Please try again.',
+          previousState: AuthUnauthenticated(),
+        ),
+      );
     }
   }
 
@@ -267,28 +298,31 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final storedHash = await _secureStorage.getHashedPin();
       if (storedHash == null) {
-        return emit(const AuthError(
-          message: 'PIN not found. Please set up a new PIN.',
-          previousState: AuthSetupRequired(),
-        ));
+        return emit(
+          const AuthError(
+            message: 'PIN not found. Please set up a new PIN.',
+            previousState: AuthSetupRequired(),
+          ),
+        );
       }
 
       // LOCAL verification — no network needed.
       final isValid = _pinHashService.verifyPin(event.pin, storedHash);
       if (!isValid) {
         final hasPin = await _secureStorage.hasPinCreated();
-        final biometricEnabled =
-            await _secureStorage.isBiometricEnabled();
-        final biometricAvailable =
-            await _biometricService.isBiometricAvailable();
-        return emit(AuthError(
-          message: 'Incorrect PIN. Please try again.',
-          previousState: AuthLocalLocked(
-            hasPin: hasPin,
-            biometricEnabled: biometricEnabled,
-            biometricAvailable: biometricAvailable,
+        final biometricEnabled = await _secureStorage.isBiometricEnabled();
+        final biometricAvailable = await _biometricService
+            .isBiometricAvailable();
+        return emit(
+          AuthError(
+            message: 'Incorrect PIN. Please try again.',
+            previousState: AuthLocalLocked(
+              hasPin: hasPin,
+              biometricEnabled: biometricEnabled,
+              biometricAvailable: biometricAvailable,
+            ),
           ),
-        ));
+        );
       }
 
       // PIN is valid — determine online/offline from local data.
@@ -298,10 +332,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       try {
         emit(await _buildLockState());
       } on Object {
-        emit(const AuthError(
-          message: 'Verification failed. Please try again.',
-          previousState: AuthLocalLocked(),
-        ));
+        emit(
+          const AuthError(
+            message: 'Verification failed. Please try again.',
+            previousState: AuthLocalLocked(),
+          ),
+        );
       }
     }
   }
@@ -342,13 +378,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         } on Object {
           // Keep false — never assume a PIN exists.
         }
-        emit(AuthError(
-          message: 'Biometric verification failed.',
-          previousState: AuthLocalLocked(
-            hasPin: hasPin,
-            biometricEnabled: true,
+        emit(
+          AuthError(
+            message: 'Biometric verification failed.',
+            previousState: AuthLocalLocked(
+              hasPin: hasPin,
+              biometricEnabled: true,
+            ),
           ),
-        ));
+        );
       }
     }
   }
@@ -362,10 +400,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     try {
       if (!_pinHashService.isValidPin(event.pin)) {
-        return emit(const AuthError(
-          message: 'PIN must be exactly 6 digits.',
-          previousState: AuthSetupRequired(),
-        ));
+        return emit(
+          const AuthError(
+            message: 'PIN must be exactly 6 digits.',
+            previousState: AuthSetupRequired(),
+          ),
+        );
       }
 
       final hashedPin = _pinHashService.hashPin(event.pin);
@@ -376,10 +416,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await _emitAuthenticatedState(emit);
     } on Object catch (e) {
       log('PIN creation error: $e');
-      emit(const AuthError(
-        message: 'Failed to save PIN. Please try again.',
-        previousState: AuthSetupRequired(),
-      ));
+      emit(
+        const AuthError(
+          message: 'Failed to save PIN. Please try again.',
+          previousState: AuthSetupRequired(),
+        ),
+      );
     }
   }
 
@@ -399,10 +441,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await _emitAuthenticatedState(emit);
     } on Object catch (e) {
       log('Enable biometric error: $e');
-      emit(const AuthError(
-        message: 'Failed to enable biometric. Please try again.',
-        previousState: AuthSetupRequired(),
-      ));
+      emit(
+        const AuthError(
+          message: 'Failed to enable biometric. Please try again.',
+          previousState: AuthSetupRequired(),
+        ),
+      );
     }
   }
 
@@ -426,6 +470,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthUnauthenticated());
   }
 
+  /// Handles "log out of all devices".
+  ///
+  /// Revokes every session on the server and clears ALL local data
+  /// (tokens, user data, PIN, biometric settings) — identical local
+  /// cleanup to a regular logout.
+  Future<void> _onLogoutAllRequested(
+    AuthLogoutAllRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+
+    try {
+      await _authRepository.logoutAll();
+    } on Object catch (e) {
+      log('Logout-all server call failed: $e');
+    }
+
+    await _secureStorage.clearAll();
+    emit(const AuthUnauthenticated());
+  }
+
   /// Handles profile refresh requests.
   ///
   /// Fetches the latest user profile from the API and re-emits the
@@ -439,17 +504,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final freshUser = await _authRepository.getMe();
       emit(AuthenticatedOnline(user: freshUser));
+    } on ApiException catch (e) {
+      emit(
+        AuthError(
+          message: e.message,
+          previousState: current,
+        ),
+      );
     } on DioException catch (e) {
-      emit(AuthError(
-        message: _extractErrorMessage(e),
-        previousState: current,
-      ));
+      emit(
+        AuthError(
+          message: _extractErrorMessage(e),
+          previousState: current,
+        ),
+      );
     } on Object catch (e) {
       log('Profile refresh error: $e');
-      emit(AuthError(
-        message: 'Could not refresh your profile. Please try again.',
-        previousState: current,
-      ));
+      emit(
+        AuthError(
+          message: 'Could not refresh your profile. Please try again.',
+          previousState: current,
+        ),
+      );
     }
   }
 
@@ -465,16 +541,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await _secureStorage.clearTokens();
     // Don't go to Unauthenticated — check if local setup still exists.
     final hasPin = await _secureStorage.hasPinCreated();
-    final biometricEnabled =
-        await _secureStorage.isBiometricEnabled();
-    final biometricAvailable =
-        await _biometricService.isBiometricAvailable();
+    final biometricEnabled = await _secureStorage.isBiometricEnabled();
+    final biometricAvailable = await _biometricService.isBiometricAvailable();
     if (hasPin || biometricEnabled) {
-      emit(AuthLocalLocked(
-        hasPin: hasPin,
-        biometricEnabled: biometricEnabled,
-        biometricAvailable: biometricAvailable,
-      ));
+      emit(
+        AuthLocalLocked(
+          hasPin: hasPin,
+          biometricEnabled: biometricEnabled,
+          biometricAvailable: biometricAvailable,
+        ),
+      );
     } else {
       emit(const AuthUnauthenticated());
     }
@@ -487,10 +563,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   /// and is never directed to a PIN keypad they didn't create.
   Future<AuthState> _buildLockState() async {
     final hasPin = await _secureStorage.hasPinCreated();
-    final biometricEnabled =
-        await _secureStorage.isBiometricEnabled();
-    final biometricAvailable =
-        await _biometricService.isBiometricAvailable();
+    final biometricEnabled = await _secureStorage.isBiometricEnabled();
+    final biometricAvailable = await _biometricService.isBiometricAvailable();
 
     if (hasPin || biometricEnabled) {
       return AuthLocalLocked(

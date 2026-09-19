@@ -15,7 +15,8 @@ Future<void> main() async {
   await dotenv.load();
   const defineBaseUrl = String.fromEnvironment('API_BASE_URL');
   await bootstrap(
-    (authBloc) => App(authBloc: authBloc),
+    (authBloc, authRepository) =>
+        App(authBloc: authBloc, authRepository: authRepository),
     // `--dart-define` resolves to '' at analyze time, hiding the fallback.
     // ignore: avoid_redundant_argument_values
     baseUrl: EnvConfig.apiBaseUrl(defineValue: defineBaseUrl),

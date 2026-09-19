@@ -43,8 +43,7 @@ class AuthHeader extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [scheme.primaryContainer, scheme.tertiaryContainer],
         ),
-        borderRadius:
-            const BorderRadius.vertical(bottom: Radius.circular(32)),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
       child: Column(
         children: [
@@ -105,7 +104,9 @@ class AuthHeader extends StatelessWidget {
 /// Compact dismissible error banner for inline auth feedback.
 class AuthErrorBanner extends StatelessWidget {
   const AuthErrorBanner({
-    required this.message, required this.onDismiss, super.key,
+    required this.message,
+    required this.onDismiss,
+    super.key,
   });
 
   final String message;

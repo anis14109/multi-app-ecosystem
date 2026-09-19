@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:flutter_app/core/models/session_model.dart';
 import 'package:flutter_app/core/models/user_model.dart';
 
 /// Thrown when the API responds that two-factor authentication is required
@@ -41,6 +42,7 @@ class AuthResponseModel extends Equatable {
   const AuthResponseModel({
     required this.user,
     required this.tokens,
+    this.session,
   });
 
   /// Parse from a full API response JSON (the envelope object).
@@ -54,9 +56,13 @@ class AuthResponseModel extends Equatable {
       throw const TwoFactorRequiredException();
     }
 
+    final session = data['session'];
     return AuthResponseModel(
       user: UserModel.fromJson(data['user'] as Map<String, dynamic>),
       tokens: AuthTokens.fromJson(data),
+      session: session is Map<String, dynamic>
+          ? SessionModel.fromJson(session)
+          : null,
     );
   }
 
@@ -66,11 +72,15 @@ class AuthResponseModel extends Equatable {
   /// The token pair for API authentication.
   final AuthTokens tokens;
 
-  @override
-  List<Object?> get props => [user, tokens];
+  /// The session that issued this token pair, when the server included one.
+  final SessionModel? session;
 
   @override
-  String toString() => 'AuthResponseModel(user: $user, tokens: $tokens)';
+  List<Object?> get props => [user, tokens, session];
+
+  @override
+  String toString() =>
+      'AuthResponseModel(user: $user, tokens: $tokens, session: $session)';
 }
 
 /// Token pair containing access and refresh tokens.
@@ -121,12 +131,12 @@ class AuthTokens extends Equatable {
 
   @override
   List<Object?> get props => [
-        accessToken,
-        refreshToken,
-        tokenType,
-        accessExpiresAt,
-        refreshExpiresAt,
-      ];
+    accessToken,
+    refreshToken,
+    tokenType,
+    accessExpiresAt,
+    refreshExpiresAt,
+  ];
 
   @override
   String toString() => 'AuthTokens(tokenType: $tokenType)';

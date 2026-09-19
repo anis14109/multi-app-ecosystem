@@ -109,9 +109,7 @@ class PinKeypad extends StatelessWidget {
                         child: Center(
                           child: Text(
                             key,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineMedium
+                            style: Theme.of(context).textTheme.headlineMedium
                                 ?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),

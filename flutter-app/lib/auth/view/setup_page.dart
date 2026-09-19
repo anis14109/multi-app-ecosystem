@@ -107,8 +107,8 @@ class _SetupPageState extends State<SetupPage> {
                 state is AuthSetupRequired && state.biometricAvailable;
             final effectiveStep =
                 _step == _SetupStep.choose && !biometricAvailable
-                    ? _SetupStep.enter
-                    : _step;
+                ? _SetupStep.enter
+                : _step;
 
             if (effectiveStep == _SetupStep.choose) {
               return _buildChoice(context);
@@ -144,8 +144,8 @@ class _SetupPageState extends State<SetupPage> {
                 '\nThis works even when you are offline.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 48),
               FilledButton.icon(
@@ -235,8 +235,8 @@ class _SetupPageState extends State<SetupPage> {
                 'Enter a 6-digit PIN to unlock the app.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 32),
               PinDots(length: entry.length),

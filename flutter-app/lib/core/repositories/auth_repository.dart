@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 
+import 'package:flutter_app/core/errors/api_exception.dart';
 import 'package:flutter_app/core/models/auth_response_model.dart';
+import 'package:flutter_app/core/models/email_verification.dart';
 import 'package:flutter_app/core/models/user_model.dart';
 import 'package:flutter_app/core/services/secure_storage_service.dart';
 
@@ -13,6 +15,9 @@ import 'package:flutter_app/core/services/secure_storage_service.dart';
 ///
 /// The AuthBloc delegates all data operations to this repository,
 /// keeping the BLoC focused on state management and business logic.
+///
+/// Every request maps transport/HTTP failures to a typed [ApiException]
+/// via [mapApiException], so callers never handle raw [DioException]s.
 class AuthRepository {
   /// Creates an [AuthRepository] with the required service dependencies.
   AuthRepository({
@@ -37,64 +42,84 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    final response = await _dio.post<Map<String, dynamic>>(
-      '/v1/auth/register',
-      data: {
-        'name': name,
-        'email': email,
-        'password': password,
-        'password_confirmation': password,
-        'device_name': _deviceName,
-      },
-    );
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/v1/auth/register',
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'password_confirmation': password,
+          'device_name': _deviceName,
+        },
+      );
 
-    return AuthResponseModel.fromJson(response.data!);
+      return AuthResponseModel.fromJson(response.data!);
+    } on DioException catch (error) {
+      throw mapApiException(error);
+    }
   }
 
   /// Authenticate an existing user via the API.
   ///
   /// Throws [TwoFactorRequiredException] when the server asks for a
-  /// two-factor challenge instead of issuing tokens.
+  /// two-factor challenge instead of issuing tokens; otherwise errors
+  /// are mapped to typed [ApiException]s (e.g. [AuthenticationException]
+  /// for `INVALID_CREDENTIALS`, [RateLimitException] for 429).
   Future<AuthResponseModel> login({
     required String email,
     required String password,
   }) async {
-    final response = await _dio.post<Map<String, dynamic>>(
-      '/v1/auth/login',
-      data: {
-        'email': email,
-        'password': password,
-        'device_name': _deviceName,
-      },
-    );
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/v1/auth/login',
+        data: {
+          'email': email,
+          'password': password,
+          'device_name': _deviceName,
+        },
+      );
 
-    return AuthResponseModel.fromJson(response.data!);
+      return AuthResponseModel.fromJson(response.data!);
+    } on DioException catch (error) {
+      throw mapApiException(error);
+    }
   }
 
   /// Refresh the access token using the stored refresh token.
   ///
   /// The Laravel endpoint expects the refresh token in the JSON body and
-  /// rotates the token pair, so the new refresh token is persisted too.
-  /// Returns the new access token.
-  Future<String> refreshToken() async {
+  /// rotates the token pair, so the new tokens AND the refreshed user
+  /// profile are persisted locally. Returns the full refreshed response.
+  Future<AuthResponseModel> refreshToken() async {
     final refreshToken = await _secureStorage.getRefreshToken();
-    if (refreshToken == null) {
-      throw Exception('No refresh token available');
+    if (refreshToken == null || refreshToken.isEmpty) {
+      throw const AuthenticationException(
+        message: 'No refresh token available',
+      );
     }
 
-    final response = await _dio.post<Map<String, dynamic>>(
-      '/v1/auth/refresh',
-      data: {'refresh_token': refreshToken},
-    );
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/v1/auth/refresh',
+        data: {'refresh_token': refreshToken},
+      );
 
-    final data = response.data!['data'] as Map<String, dynamic>;
-    final newAccessToken = data['access_token'] as String;
-    final newRefreshToken = data['refresh_token'] as String;
+      final authResponse = AuthResponseModel.fromJson(response.data!);
 
-    await _secureStorage.updateAccessToken(newAccessToken);
-    await _secureStorage.updateRefreshToken(newRefreshToken);
+      // Persist the rotated token pair and refreshed user data locally.
+      await _secureStorage.updateAccessToken(authResponse.tokens.accessToken);
+      await _secureStorage.updateRefreshToken(authResponse.tokens.refreshToken);
+      await _secureStorage.saveUserData(
+        userId: authResponse.user.id,
+        name: authResponse.user.name,
+        email: authResponse.user.email,
+      );
 
-    return newAccessToken;
+      return authResponse;
+    } on DioException catch (error) {
+      throw mapApiException(error);
+    }
   }
 
   /// Fetch the current user's profile from the API.
@@ -102,9 +127,13 @@ class AuthRepository {
   /// The Laravel v1 `me` endpoint returns the `UserResource` directly in
   /// the `data` object (no `user` wrapper).
   Future<UserModel> getMe() async {
-    final response = await _dio.get<Map<String, dynamic>>('/v1/auth/me');
-    final data = response.data!['data'] as Map<String, dynamic>;
-    return UserModel.fromJson(data);
+    try {
+      final response = await _dio.get<Map<String, dynamic>>('/v1/auth/me');
+      final data = response.data!['data'] as Map<String, dynamic>;
+      return UserModel.fromJson(data);
+    } on DioException catch (error) {
+      throw mapApiException(error);
+    }
   }
 
   /// Log out by revoking the current session on the server.
@@ -113,6 +142,103 @@ class AuthRepository {
       await _dio.post<Map<String, dynamic>>('/v1/auth/logout');
     } on DioException {
       // Proceed with local cleanup even if server call fails.
+    }
+  }
+
+  /// Revoke ALL of the user's sessions, including the current one.
+  Future<void> logoutAll() async {
+    try {
+      await _dio.post<Map<String, dynamic>>('/v1/auth/logout-all');
+    } on DioException {
+      // Proceed with local cleanup even if server call fails.
+    }
+  }
+
+  /// Request a password-reset link for the given email.
+  ///
+  /// The server always returns 200 (same message) to prevent account
+  /// enumeration, so a success here never proves the account exists.
+  Future<void> forgotPassword({required String email}) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/v1/auth/forgot-password',
+        data: {'email': email},
+      );
+    } on DioException catch (error) {
+      throw mapApiException(error);
+    }
+  }
+
+  /// Reset the password using the token from the reset email.
+  Future<void> resetPassword({
+    required String token,
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/v1/auth/reset-password',
+        data: {
+          'token': token,
+          'email': email,
+          'password': password,
+          'password_confirmation': password,
+        },
+      );
+    } on DioException catch (error) {
+      throw mapApiException(error);
+    }
+  }
+
+  /// Verify an email address using the signed link parameters.
+  Future<EmailVerificationResult> verifyEmail({
+    required int id,
+    required String hash,
+    required String expires,
+    required String signature,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/v1/auth/email/verify/$id/$hash',
+        queryParameters: {'expires': expires, 'signature': signature},
+      );
+
+      final data = response.data!['data'] as Map<String, dynamic>;
+      return EmailVerificationResult.fromJson(data);
+    } on DioException catch (error) {
+      throw mapApiException(error);
+    }
+  }
+
+  /// Resend the email verification notification for the current user.
+  ///
+  /// Returns `true` when the address has just been verified server-side
+  /// (the endpoint reports `data.verified`).
+  Future<bool> resendVerificationEmail() async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/v1/auth/email/verification-notification',
+      );
+
+      if (response.data?['data'] is Map<String, dynamic>) {
+        final data = response.data!['data'] as Map<String, dynamic>;
+        return data['verified'] as bool? ?? false;
+      }
+      return false;
+    } on DioException catch (error) {
+      throw mapApiException(error);
+    }
+  }
+
+  /// Confirm the current password (resets the password-confirm window).
+  Future<void> confirmPassword({required String password}) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/user/confirm-password',
+        data: {'password': password},
+      );
+    } on DioException catch (error) {
+      throw mapApiException(error);
     }
   }
 

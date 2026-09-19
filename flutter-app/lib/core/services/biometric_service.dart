@@ -12,7 +12,7 @@ class BiometricService {
   /// Creates a [BiometricService] with an optional [LocalAuthentication]
   /// instance for testing purposes.
   BiometricService({LocalAuthentication? localAuth})
-      : _localAuth = localAuth ?? LocalAuthentication();
+    : _localAuth = localAuth ?? LocalAuthentication();
 
   final LocalAuthentication _localAuth;
 

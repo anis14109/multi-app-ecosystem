@@ -8,7 +8,7 @@ class NetworkInfoService {
   /// Creates a [NetworkInfoService] with an optional [Connectivity]
   /// instance for testing purposes.
   NetworkInfoService({Connectivity? connectivity})
-      : _connectivity = connectivity ?? Connectivity();
+    : _connectivity = connectivity ?? Connectivity();
 
   final Connectivity _connectivity;
 

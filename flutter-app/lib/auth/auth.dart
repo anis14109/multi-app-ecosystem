@@ -8,4 +8,8 @@
 library;
 
 export 'bloc/bloc.dart';
+export 'email_verification/email_verification.dart';
+export 'forgot_password/forgot_password.dart';
+export 'password_confirmation/password_confirmation.dart';
+export 'reset_password/reset_password.dart';
 export 'view/auth_view.dart';

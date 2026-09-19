@@ -39,7 +39,8 @@ class AppBlocObserver extends BlocObserver {
 /// 2. Creates all service instances (secure storage, biometrics, network).
 /// 3. Creates the repository with its dependencies.
 /// 4. Creates the AuthBloc and triggers the initial auth check.
-/// 5. Passes the AuthBloc to [builder] so the App widget can provide it.
+/// 5. Passes the AuthBloc and AuthRepository to [builder] so the App widget
+///    can provide them to the widget tree.
 ///
 /// The service dependency graph is:
 /// ```text
@@ -55,7 +56,11 @@ class AppBlocObserver extends BlocObserver {
 ///                   AuthBloc ──> App
 /// ```
 Future<void> bootstrap(
-  FutureOr<Widget> Function(AuthBloc authBloc) builder, {
+  FutureOr<Widget> Function(
+    AuthBloc authBloc,
+    AuthRepository authRepository,
+  )
+  builder, {
   required String baseUrl,
 }) async {
   FlutterError.onError = (details) {
@@ -92,5 +97,5 @@ Future<void> bootstrap(
   )..add(const AuthStarted());
 
   // ── Run App ───────────────────────────────────────────────────────
-  runApp(await builder(authBloc));
+  runApp(await builder(authBloc, authRepository));
 }

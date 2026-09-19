@@ -47,8 +47,8 @@ class ProfilePage extends StatelessWidget {
             final user = state is AuthenticatedOnline
                 ? state.user
                 : state is AuthenticatedOffline
-                    ? state.user
-                    : null;
+                ? state.user
+                : null;
             if (user == null) {
               return const Center(child: Text('No profile data available.'));
             }
@@ -92,6 +92,24 @@ class ProfilePage extends StatelessWidget {
                   value: _formatDate(user.updatedAt),
                 ),
                 const SizedBox(height: 32),
+                if (!user.isEmailVerified) ...[
+                  _VerificationCard(userEmail: user.email),
+                  const SizedBox(height: 24),
+                ],
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pushNamed('/password-confirmation');
+                  },
+                  icon: const Icon(Icons.verified_user_outlined),
+                  label: const Text('Confirm Password'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => _confirmLogoutAll(context),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Log Out of All Devices'),
+                ),
+                const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: () {
                     context.read<AuthBloc>().add(const AuthLogoutRequested());
@@ -112,6 +130,34 @@ class ProfilePage extends StatelessWidget {
     final parsed = iso != null ? DateTime.tryParse(iso) : null;
     if (parsed == null) return '—';
     return DateFormat.yMMMMd().format(parsed.toLocal());
+  }
+
+  /// Ask for confirmation before revoking every session.
+  Future<void> _confirmLogoutAll(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Log out of all devices?'),
+        content: const Text(
+          'This will sign out every device currently signed in to '
+          'your account, including this one.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Log Out All'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      if (!context.mounted) return;
+      context.read<AuthBloc>().add(const AuthLogoutAllRequested());
+    }
   }
 }
 
@@ -145,9 +191,9 @@ class _ProfileHero extends StatelessWidget {
             child: Text(
               initial,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: scheme.onPrimary,
-                    fontWeight: FontWeight.w800,
-                  ),
+                color: scheme.onPrimary,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
           const SizedBox(width: 20),
@@ -158,8 +204,8 @@ class _ProfileHero extends StatelessWidget {
                 Text(
                   name,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -167,8 +213,8 @@ class _ProfileHero extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -209,8 +255,8 @@ class _InfoTile extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Row(
@@ -229,8 +275,8 @@ class _InfoTile extends StatelessWidget {
                       child: Text(
                         value,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -239,6 +285,52 @@ class _InfoTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Info block shown when the email address has not been verified yet.
+class _VerificationCard extends StatelessWidget {
+  const _VerificationCard({required this.userEmail});
+
+  final String userEmail;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(Icons.mark_email_unread_outlined, color: scheme.error),
+            const SizedBox(height: 12),
+            Text(
+              'Verify your email',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Your address $userEmail is not verified yet. Some '
+              'features are unavailable until you confirm it.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pushNamed('/email-verification');
+              },
+              icon: const Icon(Icons.verified_outlined),
+              label: const Text('Verify Now'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -48,8 +48,7 @@ class AuthWrapper extends StatelessWidget {
           return const LockScreen();
         }
 
-        if (state is AuthenticatedOnline ||
-            state is AuthenticatedOffline) {
+        if (state is AuthenticatedOnline || state is AuthenticatedOffline) {
           return const HomePage();
         }
 

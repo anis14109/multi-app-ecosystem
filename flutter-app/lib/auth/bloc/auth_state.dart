@@ -79,10 +79,10 @@ class AuthLocalLocked extends AuthState {
 
   @override
   List<Object?> get props => [
-        hasPin,
-        biometricEnabled,
-        biometricAvailable,
-      ];
+    hasPin,
+    biometricEnabled,
+    biometricAvailable,
+  ];
 }
 
 /// State when the user is authenticated and unlocked locally (offline mode).

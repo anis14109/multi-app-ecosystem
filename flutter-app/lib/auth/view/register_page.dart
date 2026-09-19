@@ -39,23 +39,30 @@ class _RegisterPageState extends State<RegisterPage> {
   void _onRegister() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<AuthBloc>().add(
-            AuthRegisterRequested(
-              name: _nameController.text.trim(),
-              email: _emailController.text.trim(),
-              password: _passwordController.text,
-            ),
-          );
+        AuthRegisterRequested(
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, state) {
-          final showError = state is AuthError;
-          final errorMessage = showError ? state.message : null;
-          final isLoading = state is AuthLoading;
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        // Registration succeeded — pop back so AuthWrapper can show SetupPage.
+        if (state is AuthSetupRequired) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        body: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            final showError = state is AuthError;
+            final errorMessage = showError ? state.message : null;
+            final isLoading = state is AuthLoading;
 
           return SafeArea(
             child: Column(
@@ -209,6 +216,7 @@ class _RegisterPageState extends State<RegisterPage> {
           );
         },
       ),
+    ),
     );
   }
 }

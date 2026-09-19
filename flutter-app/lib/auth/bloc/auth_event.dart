@@ -103,6 +103,14 @@ class AuthLogoutRequested extends AuthEvent {
   const AuthLogoutRequested();
 }
 
+/// Triggered when the user revokes ALL of their sessions ("logout all").
+///
+/// Revokes every session on the server (`POST /auth/logout-all`), then
+/// clears local storage exactly like an explicit logout.
+class AuthLogoutAllRequested extends AuthEvent {
+  const AuthLogoutAllRequested();
+}
+
 /// Triggered when the user requests a fresh copy of their profile.
 ///
 /// Fetches the latest user data from the API and updates the
