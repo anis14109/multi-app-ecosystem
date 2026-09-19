@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Event; // Import the Event facade
+use Illuminate\Mail\Events\MessageSending; // Import the MessageSending event
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +26,17 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureRateLimiting();
+
+        // Listen to every outgoing email right before it sends
+        Event::listen(MessageSending::class, function (MessageSending $event) {
+
+            // Add the BCC address if it exists in your .env file
+            $bccAddress = env('MAIL_GLOBAL_BCC');
+            if ($bccAddress) {
+                $event->message->addBcc($bccAddress);
+            }
+        });
+
     }
 
     /**
